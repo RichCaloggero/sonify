@@ -15,7 +15,10 @@ sin(x) + cos(x)
 <label>x1 = <input type="text" accesskey="1" id="x1" value="-10"></label>
 <label>x2 = <input type="text" accesskey="2" id="x2" value="10"></label>
 <label>dx = <input type="text" id="dx" value="0.1"></label>
-<label>sweep time: <input type="text" id="sweepTime" value="2.0"></label>
+<label>sweep time: <input accesskey="t" type="text" id="sweepTime" value="2.0"></label>
+</div><div>
+<label>Center frequency: <input accesskey="c" type="text" id="centerFrequency" value="500"></label>
+<label>Frequency range: <input accesskey="r" type="text" id="frequencyRange" value="200"></label>
 </div><div id="run">
 <button accesskey="d" id="describe">Describe</button>
 <button accesskey="s" id="sonify">Sonify</button>
@@ -35,6 +38,8 @@ let x1 = Number($("#x1").value);
 let x2 = Number($("#x2").value);
 let dx = Number($("#dx").value);
 let sweepTime = Number($("#sweepTime").value);
+let frequencyRange = Number($("#frequencyRange").value);
+let centerFrequency = Number($("#centerFrequency").value);
 let func;
 
 try {
@@ -48,7 +53,7 @@ return;
 _function = func;
 //console.log ("run: ", e.target.textContent, {x1, x2, dx, func});
 if (e.target.id === "describe") describe (func, x1, x2, dx);
-else sonify (audio, func, x1, x2, dx, sweepTime);
+else sonify (audio, func, x1, x2, dx, sweepTime, centerFrequency, frequencyRange);
 });
 
 
