@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test</title>
+</head>
+<body>
+<h1>Sonification Demo</h1>
+
+<div>
+<label>Function: <textarea accesskey="f" id="function" rows="4">
+sin(x) + cos(x)
+</textarea></label>
+</div><div>
+<label>x1 = <input type="text" accesskey="1" id="x1" value="-10"></label>
+<label>x2 = <input type="text" accesskey="2" id="x2" value="10"></label>
+<label>dx = <input type="text" id="dx" value="0.1"></label>
+<label>sweep time: <input type="text" id="sweepTime" value="2.0"></label>
+</div><div id="run">
+<button accesskey="d" id="describe">Describe</button>
+<button accesskey="s" id="sonify">Sonify</button>
+</div><div id="message" aria-live="polite">
+</div>
+
+
+<script src="sonify.js"></script>
+<script>
+let audio = new AudioContext();
+let $ = document.querySelector.bind(document);
+let _function;
+
+
+$("#run").addEventListener ("click", (e) => {
+let x1 = Number($("#x1").value);
+let x2 = Number($("#x2").value);
+let dx = Number($("#dx").value);
+let sweepTime = Number($("#sweepTime").value);
+let func;
+
+try {
+func = compile($("#function").value);
+func (0);
+} catch (e) {
+message (`invalid function, ${e}`);
+return;
+} // catch
+
+_function = func;
+//console.log ("run: ", e.target.textContent, {x1, x2, dx, func});
+if (e.target.id === "describe") describe (func, x1, x2, dx);
+else sonify (audio, func, x1, x2, dx, sweepTime);
+});
+
+
+function compile (body, parameters = "x") {
+if (! body.includes("return")) body = `return ${body}`;
+
+//try {
+return new Function (parameters,
+`with (Math) {${body};}`);
+
+/*} catch (e) {
+alert (e);
+return null;
+} // try
+*/
+} // compile
+
+/*function compile (body, args = "x") {
+with (Math) {
+if (! body.includes("return")) body = `return (${body})`;
+return new Function (args, body);
+} // with
+} // compile
+*/
+
+</script>
+</body>
+</html>
