@@ -1,16 +1,10 @@
 
 function sonify (audio, func, x1, x2, dx = 0.1, sweepTime = 2.0, frequency = 500, frequencyRange = 200, volume = .07) {
-try {
-validate (func(x1), `f(${x1})`);
-validate (func(x2), `f(${x2})`);
-
 var maxFrequency = frequency + frequencyRange / 2;
 var minFrequency = frequency - frequencyRange / 2;
 
 var max = findMax(func, x1,x2, dx);
 var min = findMin (func, x1, x2, dx);
-validate (max, "max");
-validate (min, "min");
 
 var funcRange = (max-min);
 var scaleFactor = (funcRange !== 0)? frequencyRange / funcRange : 1;
@@ -24,12 +18,8 @@ var f0 = func(0);
 
 var freqX1 = freqFunc(x1);
 var freqX2 = freqFunc(x2);
-console.log ("sonify: ", {funcRange, frequencyRange, scaleFactor, fX1, freqX1, fX2, freqX2});
+console.log ("sonify: ", {max, min, funcRange, frequencyRange, scaleFactor, fX1, freqX1, fX2, freqX2});
 
-} catch (e) {
-message (e);
-return;
-} // catch
 
 run ();
 
@@ -41,25 +31,34 @@ let gain = audio.createGain ();
 gain.gain.value = volume;
 let pan = audio.createStereoPanner();
 let x = x1;
+let started = false;
 oscillator.frequency.value = frequency;
 oscillator.connect (gain).connect(pan).connect (audio.destination);
 
 setTimeout (function _tick () {
 //console.log ("- ", x, func(x), freqFunc(x));
 
+if (isValidNumber(func(x))) {
 if (x >= x2) {
+if (started) {
 oscillator.stop ();
 console.log ("stop at ", x);
+} // if
 return;
 } // if
 
 pan.pan.value = panScaleFactor * x;
 oscillator.frequency.value = freqFunc (x);
 
-if (x === x1) oscillator.start();
+if (! started) {
+oscillator.start();
+started = true;
+} // if
 
-if (Number.isNaN(func(x))) pan.disconnect (audio.destination);
-else pan.connect (audio.destination);
+//if (Number.isNaN(func(x))) pan.disconnect (audio.destination);
+//else pan.connect (audio.destination);
+
+} // if
 
 x += dx;
 setTimeout (_tick, dt * 1000);
@@ -80,24 +79,39 @@ slopes: ${slopes.map(x => round(x, precision))};
 /// helpers
 
 function findMin (f, x1, x2, dx) {
+x1 = findFirstValidResult (f, x1,x2, dx);
+if (x1 === undefined) return NaN;
 let min = f(x1);
 
 for (let x = x1; x <= x2; x += dx) {
 let y = f(x);
-if (y < min) min = y;
+if (isValidNumber(y) && y < min) min = y;
 } // for
+
 return min;
 } // findMin
 
 function findMax (f, x1, x2, dx) {
+x1 = findFirstValidResult (f, x1,x2, dx);
+if (x1 === undefined) return NaN;
 let max = f(x1);
 
 for (let x = x1; x <= x2; x += dx) {
 let y = f(x);
-if (y > max) max = y;
+if (isValidNumber(y) && y > max) max = y;
 } // for
+
 return max;
 } // findMax
+
+function findFirstValidResult (f, x1,x2, dx) {
+for (let x = x1; x <= x2; x += dx) {
+if (isValidNumber(f(x))) return x;
+} // for
+
+return undefined;
+} // findFirstValidResult 
+
 
 function findXIntercepts (f, x1, x2, dx, refinement = 4) {
 let result = [];
@@ -140,6 +154,10 @@ let t = x * factor;
 return (truncate? Math.floor(t) : Math.round(t))
 / factor;
 } // round
+
+function isValidNumber (x) {
+return x !== -Infinity && x !== Infinity && !Number.isNaN(x);
+} // isValidNumber 
 
 function validate (value, label = "value") {
 if (Number.isNaN(value)) throw new Error (`${label} is not a number`);
