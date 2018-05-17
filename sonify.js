@@ -5,6 +5,10 @@ var minFrequency = frequency - frequencyRange / 2;
 
 var max = findMax(func, x1,x2, dx);
 var min = findMin (func, x1, x2, dx);
+if (Number.isNaN(max) || Number.isNaN(min)) {
+message ("cannot sonify this function");
+return;
+} // if
 
 var funcRange = (max-min);
 var scaleFactor = (funcRange !== 0)? frequencyRange / funcRange : 1;
