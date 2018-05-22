@@ -69,14 +69,14 @@ return run (getPoints(f, x1, x2, dx));
 function run (points) {
 let dt = sweepTime * (dx / Math.abs(x2-x1));
 console.log ("dt: ", dt.toFixed(4));
-let oscillator = audio.createOscillator();
 let gain = audio.createGain ();
 gain.gain.value = volume;
 let pan = audio.createStereoPanner();
 let started = false;
-oscillator.frequency.value = frequency;
+let oscillator = audio.createOscillator();
 oscillator.connect (gain).connect(pan).connect (audio.destination);
 console.log (`sonifying ${points.length} points...`);
+//playNext ();
 
 setTimeout (function _tick () {
 //console.log ("- ", x, func(x), freqFunc(x));
@@ -109,6 +109,36 @@ setTimeout (_tick, dt * 1000);
 }, dt * 1000);
 
 return oscillator;
+
+
+function playNext () {
+if (! points || points.length === 0) return;
+
+let point = points.shift();
+let x = point[0];
+let y = point[1];
+
+let oscillator = audio.createOscillator();
+//let gain = audio.createGain ();
+//gain.gain.value = volume;
+//let pan = audio.createStereoPanner();
+oscillator.connect (gain)
+//.connect(pan).connect (audio.destination);
+
+if (isValidNumber(y)) {
+pan.pan.value = panScaleFactor * x;
+oscillator.frequency.value = y * scaleFactor + frequency;
+oscillator.onended = () => {
+oscillator.disconnect ();
+playNext ();
+} // onended
+
+oscillator.start();
+oscillator.stop (audio.currentTime+dt);
+
+} // if
+} // playNext
+
 } // run
 } // sonify
 
