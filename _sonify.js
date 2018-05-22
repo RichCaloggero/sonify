@@ -1,10 +1,11 @@
-function getPoints (f, x1, x2, dx) {
+function getPoints (f, x1, x2, dx, freq) {
 let p = Math.abs(Math.log10(dx))+1;
+if (! freq) freq = (x) => 0;
 
 return enumerate (x1,x2,dx)
 .map (x => {
 x = Number(x.toFixed(p));
-return [x, Number(f(x).toFixed(p))];
+return [x, Number(f(x).toFixed(p)), Number(freq(x).toFixed(p))];
 });
 } // getPoints
 
@@ -37,12 +38,12 @@ return m;
 } // min
 
 
-function sonify (audio, f, x1, x2, dx = 0.1, sweepTime = 2.0, frequency = 500, frequencyRange = 200, volume = .07) {
+function sonify (audio, func, x1, x2, dx = 0.1, sweepTime = 2.0, frequency = 500, frequencyRange = 200, volume = .07) {
 let maxFrequency = frequency + frequencyRange / 2;
 let minFrequency = frequency - frequencyRange / 2;
 
-let _max = max(f, x1,x2, dx)[1];
-let _min = min (f, x1, x2, dx)[1];
+let _max = max(func, x1,x2, dx)[1];
+let _min = min (func, x1, x2, dx)[1];
 if (Number.isNaN(_max) || Number.isNaN(_min)) {
 message ("cannot sonify this function");
 return;
@@ -51,50 +52,47 @@ return;
 let funcRange = (_max-_min);
 let scaleFactor = (funcRange !== 0)? frequencyRange / funcRange : 1;
 let panScaleFactor = 2 / Math.abs(x2-x1);
-let freqFunc = x => f(x) * scaleFactor + frequency;
+let freqFunc = x => func(x) * scaleFactor + frequency;
 
 //debugging
-let fX1 = f(x1);
-let fX2 = f(x2);
-let f0 = f(0);
+let fX1 = func(x1);
+let fX2 = func(x2);
+let f0 = func(0);
 
 let freqX1 = freqFunc(x1);
 let freqX2 = freqFunc(x2);
-//console.log ("sonify: ", {_max, _min, funcRange, frequencyRange, scaleFactor, fX1, freqX1, fX2, freqX2});
+console.log ("sonify: ", {_max, _min, funcRange, frequencyRange, scaleFactor, fX1, freqX1, fX2, freqX2});
 
 
-return run (getPoints(f, x1, x2, dx));
+run (getPoints(f, x1, x2, dx));
+return freqFunc;
 
 
 function run (points) {
 let dt = sweepTime * (dx / Math.abs(x2-x1));
-console.log ("dt: ", dt.toFixed(4));
 let oscillator = audio.createOscillator();
 let gain = audio.createGain ();
 gain.gain.value = volume;
 let pan = audio.createStereoPanner();
+let x = x1;
 let started = false;
 oscillator.frequency.value = frequency;
 oscillator.connect (gain).connect(pan).connect (audio.destination);
-console.log (`sonifying ${points.length} points...`);
 
 setTimeout (function _tick () {
 //console.log ("- ", x, func(x), freqFunc(x));
-if (points.length === 0) {
+
+if (isValidNumber(func(x))) {
+if (x >= x2) {
 if (started) {
 oscillator.stop ();
+console.log ("stop at ", x);
 } // if
-
 return;
 } // if
 
-let point = points.shift();
-let x = point[0];
-let y = point[1];
-
-if (isValidNumber(y)) {
 pan.pan.value = panScaleFactor * x;
-oscillator.frequency.value = y * scaleFactor + frequency;
+oscillator.frequency.value = freqFunc (x);
 
 if (! started) {
 oscillator.start();
@@ -103,12 +101,13 @@ started = true;
 
 //if (Number.isNaN(func(x))) pan.disconnect (audio.destination);
 //else pan.connect (audio.destination);
+
 } // if
 
+x += dx;
 setTimeout (_tick, dt * 1000);
 }, dt * 1000);
 
-return oscillator;
 } // run
 } // sonify
 
