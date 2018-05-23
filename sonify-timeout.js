@@ -1,3 +1,41 @@
+function getPoints (f, x1, x2, dx) {
+let p = Math.abs(Math.log10(dx))+1;
+
+return enumerate (x1,x2,dx)
+.map (x => {
+x = Number(x.toFixed(p));
+return [x, Number(f(x).toFixed(p))];
+});
+} // getPoints
+
+function enumerate (first, last, step) {
+if (first > last) {
+let t = first;
+first = last;
+last = t;
+} // if
+
+let result = [];
+for (let x=first; x<=last; x += step) result.push (x);
+return result;
+} // enumerate
+
+function max (f, x1,x2, dx) {
+return getPoints (f, x1,x2, dx)
+.reduce ((m, p) => {
+if (isValidNumber(p[1]) && p[1] > m[1]) m = p;
+return m;
+});
+} // max
+
+function min (f, x1,x2, dx) {
+return getPoints (f, x1,x2, dx)
+.reduce ((m, p) => {
+if (isValidNumber(p[1]) && p[1] < m[1]) m = p;
+return m;
+});
+} // min
+
 
 function sonify (audio, f, x1, x2, dx = 0.1, sweepTime = 2.0, frequency = 500, frequencyRange = 200, volume = .07) {
 let maxFrequency = frequency + frequencyRange / 2;
@@ -40,22 +78,67 @@ oscillator.connect (gain).connect(pan).connect (audio.destination);
 console.log (`sonifying ${points.length} points...`);
 //playNext ();
 
-let t = audio.currentTime;
-points.forEach (point => {
+setTimeout (function _tick () {
+//console.log ("- ", x, func(x), freqFunc(x));
+if (points.length === 0) {
+if (started) {
+oscillator.stop ();
+} // if
+
+return;
+} // if
+
+let point = points.shift();
 let x = point[0];
 let y = point[1];
 
 if (isValidNumber(y)) {
-pan.pan.setValueAtTime (panScaleFactor * x, t);
-oscillator.frequency.setValueAtTime (y * scaleFactor + frequency, t);
+pan.pan.value = panScaleFactor * x;
+oscillator.frequency.value = y * scaleFactor + frequency;
+
+if (! started) {
+oscillator.start();
+started = true;
 } // if
 
-t += dt;
-}); // forEach point
+//if (Number.isNaN(func(x))) pan.disconnect (audio.destination);
+//else pan.connect (audio.destination);
+} // if
 
-oscillator.start ();
-oscillator.stop (t);
+setTimeout (_tick, dt * 1000);
+}, dt * 1000);
+
 return oscillator;
+
+
+function playNext () {
+if (! points || points.length === 0) return;
+
+let point = points.shift();
+let x = point[0];
+let y = point[1];
+
+let oscillator = audio.createOscillator();
+//let gain = audio.createGain ();
+//gain.gain.value = volume;
+//let pan = audio.createStereoPanner();
+oscillator.connect (gain)
+//.connect(pan).connect (audio.destination);
+
+if (isValidNumber(y)) {
+pan.pan.value = panScaleFactor * x;
+oscillator.frequency.value = y * scaleFactor + frequency;
+oscillator.onended = () => {
+oscillator.disconnect ();
+playNext ();
+} // onended
+
+oscillator.start();
+oscillator.stop (audio.currentTime+dt);
+
+} // if
+} // playNext
+
 } // run
 } // sonify
 
@@ -70,52 +153,31 @@ slopes: ${slopes.map(x => round(x, precision))};
 
 /// helpers
 
-function getPoints (f, x1, x2, dx) {
-if (f instanceof Array && f[0] instanceof Array && f[0].length === 2) return f;
+function findMin (f, x1, x2, dx) {
+x1 = findFirstValidResult (f, x1,x2, dx);
+if (x1 === undefined) return NaN;
+let min = f(x1);
 
-if (f instanceof Function) {
-let p = Math.abs(Math.log10(dx))+1;
+for (let x = x1; x <= x2; x += dx) {
+let y = f(x);
+if (isValidNumber(y) && y < min) min = y;
+} // for
 
-return enumerate (x1,x2,dx)
-.map (x => {
-x = Number(x.toFixed(p));
-return [x, Number(f(x).toFixed(p))];
-});
+return min;
+} // findMin
 
-} else {
-alert ("getPoints: first argument must be a function or array of points");
-return [];
-} // if
-} // getPoints
+function findMax (f, x1, x2, dx) {
+x1 = findFirstValidResult (f, x1,x2, dx);
+if (x1 === undefined) return NaN;
+let max = f(x1);
 
-function enumerate (first, last, step) {
-if (first > last) {
-let t = first;
-first = last;
-last = t;
-} // if
+for (let x = x1; x <= x2; x += dx) {
+let y = f(x);
+if (isValidNumber(y) && y > max) max = y;
+} // for
 
-let result = [];
-for (let x=first; x<=last; x += step) result.push (x);
-return result;
-} // enumerate
-
-function max (f, x1,x2, dx) {
-return getPoints (f, x1,x2, dx)
-.reduce ((m, p) => {
-if (isValidNumber(p[1]) && p[1] > m[1]) m = p;
-return m;
-});
-} // max
-
-function min (f, x1,x2, dx) {
-return getPoints (f, x1,x2, dx)
-.reduce ((m, p) => {
-if (isValidNumber(p[1]) && p[1] < m[1]) m = p;
-return m;
-});
-} // min
-
+return max;
+} // findMax
 
 function findFirstValidResult (f, x1,x2, dx) {
 for (let x = x1; x <= x2; x += dx) {
