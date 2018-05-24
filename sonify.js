@@ -13,9 +13,9 @@ return;
 let funcRange = (_max-_min);
 let scaleFactor = (funcRange !== 0)? frequencyRange / funcRange : 1;
 let panScaleFactor = 2 / Math.abs(x2-x1);
-let freqFunc = x => f(x) * scaleFactor + frequency;
 
 //debugging
+/*let freqFunc = x => f(x) * scaleFactor + frequency;
 let fX1 = f(x1);
 let fX2 = f(x2);
 let f0 = f(0);
@@ -23,22 +23,20 @@ let f0 = f(0);
 let freqX1 = freqFunc(x1);
 let freqX2 = freqFunc(x2);
 //console.log ("sonify: ", {_max, _min, funcRange, frequencyRange, scaleFactor, fX1, freqX1, fX2, freqX2});
-
+*/
 
 return run (getPoints(f, x1, x2, dx));
 
 
 function run (points) {
 let dt = sweepTime * (dx / Math.abs(x2-x1));
-console.log ("dt: ", dt.toFixed(4));
+//console.log ("dt: ", dt.toFixed(Math.abs(Math.log10(dx))));
 let gain = audio.createGain ();
 gain.gain.value = volume;
 let pan = audio.createStereoPanner();
-let started = false;
 let oscillator = audio.createOscillator();
 oscillator.connect (gain).connect(pan).connect (audio.destination);
-console.log (`sonifying ${points.length} points...`);
-//playNext ();
+//console.log (`sonifying ${points.length} points...`);
 
 let t = audio.currentTime;
 points.forEach (point => {
@@ -59,14 +57,16 @@ return oscillator;
 } // run
 } // sonify
 
-function describe (f, x1, x2, dx, precision = 2) {
+function describe (f, x1, x2, dx) {
+let precision = Math.abs(Math.log10(dx));
 let xIntercepts = findXIntercepts(f, x1, x2, dx, precision+1);
 let slopes = xIntercepts.map (x => findSlope(f, x, dx));
 message (`
-X intercepts: ${xIntercepts.map(x => round(x,precision))};
-slopes: ${slopes.map(x => round(x, precision))};
+X intercepts: ${xIntercepts};
+slopes: ${slopes.map(x => Number(x.toFixed(precision)))};
 `);
 } // describe
+
 
 /// helpers
 
@@ -126,15 +126,16 @@ return undefined;
 } // findFirstValidResult 
 
 
-function findXIntercepts (f, x1, x2, dx, refinement = 4) {
-let result = [];
+function findXIntercepts (f, x1, x2, dx) {
+let precision = Math.abs(Math.log10(dx)) + 1;
+let points = getPoints (f, x1,x2, dx);
+if (points.length < 2) return [];
 
-do {
-x1 = find (f, x1, x2, dx, refinement);
-if (x1 === undefined) break;
-result.push (x1);
-} while ((x1 += dx) <= x2);
-return result;
+return points.map ((p, i, a) => (i < a.length-1)? [p, a[i+1]] : [])
+.filter (pair => pair.length == 2  && Math.sign(pair[0][1]) !== Math.sign(pair[1][1]))
+.map (pair => [Number(x_intercept(pair[0], pair[1]).toFixed(precision)), 0]);
+
+
 
 function find (f, x1, x2, dx, refine = 3) {
 let xLast = x1;
@@ -187,3 +188,6 @@ if (display) display.textContent = text;
 else alert (text);
 } // message
 
+function x_intercept (a, b) {
+return a[0] - a[1]*(b[0]-a[0])/(b[1]-a[1]);
+} // x_intercept
