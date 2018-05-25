@@ -58,12 +58,12 @@ return oscillator;
 } // sonify
 
 function describe (f, x1, x2, dx) {
-let precision = Math.abs(Math.log10(dx));
-let xIntercepts = findXIntercepts(f, x1, x2, dx, precision+1);
+let _precision = precision(dx);
+let xIntercepts = findXIntercepts(f, x1, x2, dx);
 let slopes = xIntercepts.map (x => findSlope(f, x, dx));
 message (`
-X intercepts: ${xIntercepts};
-slopes: ${slopes.map(x => Number(x.toFixed(precision)))};
+X intercepts: ${xIntercepts};<br>
+slopes: ${slopes};
 `);
 } // describe
 
@@ -74,12 +74,9 @@ function getPoints (f, x1, x2, dx) {
 if (f instanceof Array && f[0] instanceof Array && f[0].length === 2) return f;
 
 if (f instanceof Function) {
-let p = Math.abs(Math.log10(dx))+1;
-
 return enumerate (x1,x2,dx)
 .map (x => {
-x = Number(x.toFixed(p));
-return [x, Number(f(x).toFixed(p))];
+return [x, toFixed(f(x), precision(dx)+1)];
 });
 
 } else {
@@ -96,7 +93,7 @@ last = t;
 } // if
 
 let result = [];
-for (let x=first; x<=last; x += step) result.push (x);
+for (let x=first; x<=last; x += step) result.push (toFixed(x, precision(step)+1));
 return result;
 } // enumerate
 
@@ -133,7 +130,7 @@ if (points.length < 2) return [];
 
 return points.map ((p, i, a) => (i < a.length-1)? [p, a[i+1]] : [])
 .filter (pair => pair.length == 2  && Math.sign(pair[0][1]) !== Math.sign(pair[1][1]))
-.map (pair => [Number(x_intercept(pair[0], pair[1]).toFixed(precision)), 0]);
+.map (pair => [toFixed(x_intercept(pair[0], pair[1]), precision(dx)+1), 0]);
 
 
 
@@ -155,12 +152,27 @@ return undefined;
 
 
 function findSlope (f, x, dx) {
+if (! (f instanceof Function)) {
+alert ("findSlope only defined for functions, not lists of points");
+return undefined;
+} // if
 if (dx === 0) return undefined;
-let x1 = x - dx/2;
-let x2 = x + dx/2;
+
+let x1 = x - dx/10;
+let x2 = x + dx/10;
 let dY = f(x1) - f(x2);
-return dY / dx;
+return toFixed(dY / dx, precision(dx)+1);
 } // findSlope
+
+function precision (x) {
+return  Math.abs(Math.floor(Math.log10(x)));
+} // precision
+
+function toFixed (x, n) {
+return Number(
+Number(x).toFixed(n)
+); // Number
+} // toFixed
 
 function round (x, n, truncate) {
 let factor = Math.pow(10, n);
