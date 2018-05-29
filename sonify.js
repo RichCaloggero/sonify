@@ -62,7 +62,7 @@ let _precision = precision(dx);
 let xIntercepts = findXIntercepts(f, x1, x2, dx);
 let slopes = xIntercepts.map (x => findSlope(f, x, dx));
 message (`
-X intercepts: ${xIntercepts};<br>
+X intercepts: ${xIntercepts};
 slopes: ${slopes};
 `);
 } // describe
@@ -124,30 +124,28 @@ return undefined;
 
 
 function findXIntercepts (f, x1, x2, dx) {
-let precision = Math.abs(Math.log10(dx)) + 1;
 let points = getPoints (f, x1,x2, dx);
-if (points.length < 2) return [];
 
-return points.map ((p, i, a) => (i < a.length-1)? [p, a[i+1]] : [])
-.filter (pair => pair.length == 2  && Math.sign(pair[0][1]) !== Math.sign(pair[1][1]))
-.map (pair => [toFixed(x_intercept(pair[0], pair[1]), precision(dx)+1), 0]);
-
-
-
-function find (f, x1, x2, dx, refine = 3) {
-let xLast = x1;
-
-for (let x = x1+dx; x <= x2; x += dx) {
-if (Math.sign(f(xLast)) !== Math.sign(f(x))) {
-if (refine === 0) return (xLast + x) /2;
-else return find (f, xLast, x, dx/10, refine-1);
+// we need at least two points in order to find an intercept
+if (points.length < 2) {
+if (points.length === 1 && points[0][1] === 0) return points;
+else return [];
 } // if
 
-xLast = x;
-} // for
-
-return undefined;
-} // find
+// first create a list of pairs of adjacent points
+return points.map ((p, i, a) => {
+let pNext = a[i+1];
+return pNext? [p, pNext] : [];
+})
+// next, find all such pairs where the sign of f(x) changes
+.filter (pair => {
+if (pair.length === 0) return false;
+let p1 = pair[0], p2 = pair[1];
+let [x1, y1] = p1, [x2, y2] = p2;
+return Math.sign (y1) !== Math.sign(y2);
+})
+// and return value of x intercept found by linearly interpreting between these pairs of points
+.map (pair => [toFixed(x_intercept(pair[0], pair[1]), precision(dx)+1), 0]);
 } // findXIntercept
 
 
