@@ -26,6 +26,12 @@ gain.gain.value = volume;
 let pan = audio.createStereoPanner();
 let oscillator = audio.createOscillator();
 oscillator.connect (gain).connect(pan).connect (audio.destination);
+
+let noise = createNoise();
+let noiseGain = audio.createGain ();
+noiseGain.gain.value = 0;
+let noiseVolume = 2 * volume;
+noise.connect (noiseGain).connect (gain);
 //console.log (`sonifying ${points.length} points...`);
 
 let t = audio.currentTime;
@@ -35,15 +41,44 @@ if (isValidNumber(point.y)) {
 pan.pan.setValueAtTime (panScaleFactor * point.x, t);
 //console.log ("- frequency: ", point.y * scaleFactor + frequency);
 oscillator.frequency.setValueAtTime (point.y * scaleFactor + frequency, t);
+
+if (point.y < 0) {
+noiseGain.gain.setValueAtTime (noiseVolume, t);
+console.log ("noise: ", point.y, point.y < 0, noiseVolume);
+} else {
+noiseGain.gain.setValueAtTime (0, t);
+console.log ("noise: ", point.y, point.y < 0, 0);
+} // if
+
+/*noiseGain.gain.setValueAtTime (
+point.y < 0? noiseVolume : 0, t
+);
+*/
 } // if
 
 t += dt;
 }); // forEach point
 
 oscillator.start ();
+noise.start ();
 oscillator.stop (t);
+noise.stop (t);
 return oscillator;
 } // run
+
+
+function createNoise () {
+let buf = audio.createBuffer(1, audio.sampleRate, audio.sampleRate);
+let data = buf.getChannelData(0);
+
+for (var i = 0; i < data.length; i++) {
+data[i] = Math.random() * 2 - 1;
+} // for i
+
+let noise = audio.createBufferSource();
+noise.buffer = buf;
+return noise;
+} // createNoise
 } // sonify
 
 function describe (f, x1, x2, dx) {
