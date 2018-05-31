@@ -3,8 +3,8 @@ function sonify (audio, f, x1, x2, dx = 0.1, sweepTime = 2.0, frequency = 500, f
 let maxFrequency = frequency + frequencyRange / 2;
 let minFrequency = frequency - frequencyRange / 2;
 
-let _max = max(f, x1,x2, dx).y;
-let _min = min (f, x1, x2, dx).y;
+let _max = max(f, x1,x2, dx)[1];
+let _min = min (f, x1, x2, dx)[1];
 if (Number.isNaN(_max) || Number.isNaN(_min)) {
 message ("cannot sonify this function");
 return;
@@ -13,14 +13,24 @@ return;
 let funcRange = (_max-_min);
 let scaleFactor = (funcRange !== 0)? frequencyRange / funcRange : 1;
 let panScaleFactor = 2 / Math.abs(x2-x1);
-console.log ("debug: ", {_max, _min, funcRange, frequencyRange, scaleFactor});
+
+//debugging
+/*let freqFunc = x => f(x) * scaleFactor + frequency;
+let fX1 = f(x1);
+let fX2 = f(x2);
+let f0 = f(0);
+
+let freqX1 = freqFunc(x1);
+let freqX2 = freqFunc(x2);
+//console.log ("sonify: ", {_max, _min, funcRange, frequencyRange, scaleFactor, fX1, freqX1, fX2, freqX2});
+*/
 
 return run (getPoints(f, x1, x2, dx));
 
 
 function run (points) {
 let dt = sweepTime * (dx / Math.abs(x2-x1));
-//console.log ("dt: ", toFixed(dt, precision(dx)+1));
+//console.log ("dt: ", dt.toFixed(Math.abs(Math.log10(dx))));
 let gain = audio.createGain ();
 gain.gain.value = volume;
 let pan = audio.createStereoPanner();
@@ -30,11 +40,12 @@ oscillator.connect (gain).connect(pan).connect (audio.destination);
 
 let t = audio.currentTime;
 points.forEach (point => {
-//console.log ("- ", typeof(point.x), typeof(point.y), point);
-if (isValidNumber(point.y)) {
-pan.pan.setValueAtTime (panScaleFactor * point.x, t);
-//console.log ("- frequency: ", point.y * scaleFactor + frequency);
-oscillator.frequency.setValueAtTime (point.y * scaleFactor + frequency, t);
+let x = point[0];
+let y = point[1];
+
+if (isValidNumber(y)) {
+pan.pan.setValueAtTime (panScaleFactor * x, t);
+oscillator.frequency.setValueAtTime (y * scaleFactor + frequency, t);
 } // if
 
 t += dt;
@@ -60,14 +71,13 @@ slopes: ${slopes};
 /// helpers
 
 function getPoints (f, x1, x2, dx) {
+if (f instanceof Array && f[0] instanceof Array && f[0].length === 2) return f;
+
 if (f instanceof Function) {
 return enumerate (x1,x2,dx)
 .map (x => {
-return {x: x, y: toFixed(f(x), precision(dx)+1)};
+return [x, toFixed(f(x), precision(dx)+1)];
 });
-
-} else if (typeof(f) === "object" && f instanceof Array) {
-return f;
 
 } else {
 alert ("getPoints: first argument must be a function or array of points");
@@ -90,7 +100,7 @@ return result;
 function max (f, x1,x2, dx) {
 return getPoints (f, x1,x2, dx)
 .reduce ((m, p) => {
-if (isValidNumber(p.y) && p.y > m.y) m = p;
+if (isValidNumber(p[1]) && p[1] > m[1]) m = p;
 return m;
 });
 } // max
@@ -98,7 +108,7 @@ return m;
 function min (f, x1,x2, dx) {
 return getPoints (f, x1,x2, dx)
 .reduce ((m, p) => {
-if (isValidNumber(p.y) && p.y < m.y) m = p;
+if (isValidNumber(p[1]) && p[1] < m[1]) m = p;
 return m;
 });
 } // min
@@ -118,21 +128,21 @@ let points = getPoints (f, x1,x2, dx);
 
 // we need at least two points in order to find an intercept
 if (points.length < 2) {
-if (points.length === 1 && points[0].y === 0) return points;
-else return null;
+if (points.length === 1 && points[0][1] === 0) return points;
+else return [];
 } // if
 
 // first create a list of pairs of adjacent points
 return points.map ((p, i, a) => {
 let pNext = a[i+1];
-return pNext? [p, pNext] : null;
+return pNext? [p, pNext] : [];
 })
 // next, find all such pairs where the sign of f(x) changes
 .filter (pair => {
-if (pair) {
+if (pair.length === 0) return false;
 let p1 = pair[0], p2 = pair[1];
-return Math.sign (p1.y) !== Math.sign(p2.y);
-} // if
+let [x1, y1] = p1, [x2, y2] = p2;
+return Math.sign (y1) !== Math.sign(y2);
 })
 // and return value of x intercept found by linearly interpreting between these pairs of points
 .map (pair => [toFixed(x_intercept(pair[0], pair[1]), precision(dx)+1), 0]);
@@ -189,5 +199,5 @@ else alert (text);
 } // message
 
 function x_intercept (a, b) {
-return a.x - a.y*(b.x-a.x)/(b.y-a.y);
+return a[0] - a[1]*(b[0]-a[0])/(b[1]-a[1]);
 } // x_intercept
