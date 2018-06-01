@@ -3,17 +3,17 @@ function sonify (audio, f, x1, x2, dx = 0.1, sweepTime = 2.0, frequency = 500, f
 let maxFrequency = frequency + frequencyRange / 2;
 let minFrequency = frequency - frequencyRange / 2;
 
-let _max = max(f, x1,x2, dx).y;
-let _min = min (f, x1, x2, dx).y;
-if (Number.isNaN(_max) || Number.isNaN(_min)) {
+let _max = max(f, x1,x2, dx);
+let _min = min (f, x1, x2, dx);
+if (Number.isNaN(_max.y) || Number.isNaN(_min.y)) {
 message ("cannot sonify this function");
 return;
 } // if
 
-let funcRange = (_max-_min);
+let funcRange = (_max.y - _min.y);
 let scaleFactor = (funcRange !== 0)? frequencyRange / funcRange : 1;
 let panScaleFactor = 2 / Math.abs(x2-x1);
-console.log ("debug: ", {_max, _min, funcRange, frequencyRange, scaleFactor});
+//console.log ("debug: ", {_max, _min, funcRange, frequencyRange, scaleFactor});
 
 return run (getPoints(f, x1, x2, dx));
 
@@ -30,30 +30,20 @@ oscillator.connect (gain).connect(pan).connect (audio.destination);
 let noise = createNoise();
 let noiseGain = audio.createGain ();
 noiseGain.gain.value = 0;
-let noiseVolume = 2 * volume;
 noise.connect (noiseGain).connect (gain);
+
+let noiseVolume = 3 * volume;
+let t = audio.currentTime;
+let noiseState = false;
 //console.log (`sonifying ${points.length} points...`);
 
-let t = audio.currentTime;
 points.forEach (point => {
 //console.log ("- ", typeof(point.x), typeof(point.y), point);
 if (isValidNumber(point.y)) {
 pan.pan.setValueAtTime (panScaleFactor * point.x, t);
 //console.log ("- frequency: ", point.y * scaleFactor + frequency);
 oscillator.frequency.setValueAtTime (point.y * scaleFactor + frequency, t);
-
-if (point.y < 0) {
-noiseGain.gain.setValueAtTime (noiseVolume, t);
-console.log ("noise: ", point.y, point.y < 0, noiseVolume);
-} else {
-noiseGain.gain.setValueAtTime (0, t);
-console.log ("noise: ", point.y, point.y < 0, 0);
-} // if
-
-/*noiseGain.gain.setValueAtTime (
-point.y < 0? noiseVolume : 0, t
-);
-*/
+noiseGain.gain.setValueAtTime (point.y < 0? noiseVolume : 0, t);
 } // if
 
 t += dt;
@@ -77,6 +67,7 @@ data[i] = Math.random() * 2 - 1;
 
 let noise = audio.createBufferSource();
 noise.buffer = buf;
+noise.loop = true;
 return noise;
 } // createNoise
 } // sonify
@@ -98,7 +89,7 @@ function getPoints (f, x1, x2, dx) {
 if (f instanceof Function) {
 return enumerate (x1,x2,dx)
 .map (x => {
-return {x: x, y: toFixed(f(x), precision(dx)+1)};
+return {x: toFixed(x, precision(dx)+1), y: toFixed(f(x), precision(dx)+1)};
 });
 
 } else if (typeof(f) === "object" && f instanceof Array) {
@@ -118,7 +109,7 @@ last = t;
 } // if
 
 let result = [];
-for (let x=first; x<=last; x += step) result.push (toFixed(x, precision(step)+1));
+for (let x=first; x<=last; x += step) result.push (x);
 return result;
 } // enumerate
 

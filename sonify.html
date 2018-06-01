@@ -58,7 +58,7 @@ message (`${points.length} points retrieved`);
 e.target.innerHTML = "";
 points.forEach (p => {
 let option = document.createElement ("option");
-option.textContent = p.join(", ");
+option.textContent = Object.values(p);
 e.target.add(option);
 }); // for each point
 }); // focus
