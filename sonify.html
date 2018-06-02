@@ -8,17 +8,18 @@
 <h1>Sonification Demo</h1>
 
 <div>
-<label>Function: <textarea accesskey="f" id="function" rows="4">
+<label>function: <textarea accesskey="f" id="function" rows="4">
 tan(x)
 </textarea></label>
 </div><div>
 <label>x1 = <input type="text" accesskey="1" id="x1" value="-10.0"></label>
 <label>x2 = <input type="text" accesskey="2" id="x2" value="10.0"></label>
 <label>dx = <input type="text" id="dx" value="0.2"></label>
-<label>sweep time: <input accesskey="t" type="text" id="sweepTime" value="2.0"> seconds</label>
 </div><div>
-<label>Center frequency: <input accesskey="c" type="text" id="centerFrequency" value="300"> hz</label>
-<label>Frequency range: <input accesskey="r" type="text" id="frequencyRange" value="800"> hz</label>
+<label>sweep time: <input accesskey="t" type="text" id="sweepTime" value="2.0"> seconds</label>
+<label>scale factor: <input accesskey="a" type="text" id="scaleFactor" value="1.0"></label>
+<label>center frequency: <input accesskey="c" type="text" id="centerFrequency" value="300"> hz</label>
+<label>frequency range: <input accesskey="r" type="text" id="frequencyRange" value="800"> hz</label>
 </div><div id="run">
 <button accesskey="d" id="describe">Describe</button>
 <button accesskey="s" id="sonify">Sonify</button>
@@ -70,6 +71,7 @@ let dx = Number($("#dx").value);
 let sweepTime = Number($("#sweepTime").value);
 let frequencyRange = Number($("#frequencyRange").value);
 let centerFrequency = Number($("#centerFrequency").value);
+let scaleFactor = Number($("#scaleFactor").value);
 let f;
 
 if (oscillator) {
@@ -93,7 +95,7 @@ switch (e.target.id) {
 case "describe": describe (f, x1, x2, dx);
 break;
 
-case "sonify": oscillator = sonify (audio, f, x1, x2, dx, sweepTime, centerFrequency, frequencyRange);
+case "sonify": oscillator = sonify (audio, f, x1, x2, dx, sweepTime, centerFrequency, frequencyRange, scaleFactor);
 oscillator.onended = () => oscillator = null;
 break;
 } // switch

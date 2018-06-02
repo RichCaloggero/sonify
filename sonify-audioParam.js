@@ -1,11 +1,104 @@
-function getPoints (f, x1, x2, dx) {
-let p = Math.abs(Math.log10(dx))+1;
 
+function sonify (audio, f, x1, x2, dx = 0.1, sweepTime = 2.0, frequency = 500, frequencyRange = 200, volume = .07) {
+let maxFrequency = frequency + frequencyRange / 2;
+let minFrequency = frequency - frequencyRange / 2;
+
+let _max = max(f, x1,x2, dx);
+let _min = min (f, x1, x2, dx);
+if (Number.isNaN(_max.y) || Number.isNaN(_min.y)) {
+message ("cannot sonify this function");
+return;
+} // if
+
+let funcRange = (_max.y - _min.y);
+let scaleFactor = (funcRange !== 0)? frequencyRange / funcRange : 1;
+let panScaleFactor = 2 / Math.abs(x2-x1);
+//console.log ("debug: ", {_max, _min, funcRange, frequencyRange, scaleFactor});
+
+return run (getPoints(f, x1, x2, dx));
+
+
+function run (points) {
+let dt = sweepTime * (dx / Math.abs(x2-x1));
+//console.log ("dt: ", toFixed(dt, precision(dx)+1));
+let gain = audio.createGain ();
+gain.gain.value = volume;
+let pan = audio.createStereoPanner();
+let oscillator = audio.createOscillator();
+oscillator.connect (gain).connect(pan).connect (audio.destination);
+
+let noise = createNoise();
+let noiseGain = audio.createGain ();
+noiseGain.gain.value = 0;
+noise.connect (noiseGain).connect (gain);
+
+let noiseVolume = 3 * volume;
+let t = audio.currentTime;
+let noiseState = false;
+//console.log (`sonifying ${points.length} points...`);
+
+points.forEach (point => {
+//console.log ("- ", typeof(point.x), typeof(point.y), point);
+if (isValidNumber(point.y)) {
+pan.pan.setValueAtTime (panScaleFactor * point.x, t);
+//console.log ("- frequency: ", point.y * scaleFactor + frequency);
+oscillator.frequency.setValueAtTime (point.y * scaleFactor + frequency, t);
+noiseGain.gain.setValueAtTime (point.y < 0? noiseVolume : 0, t);
+} // if
+
+t += dt;
+}); // forEach point
+
+oscillator.start ();
+noise.start ();
+oscillator.stop (t);
+noise.stop (t);
+return oscillator;
+} // run
+
+
+function createNoise () {
+let buf = audio.createBuffer(1, audio.sampleRate, audio.sampleRate);
+let data = buf.getChannelData(0);
+
+for (var i = 0; i < data.length; i++) {
+data[i] = Math.random() * 2 - 1;
+} // for i
+
+let noise = audio.createBufferSource();
+noise.buffer = buf;
+noise.loop = true;
+return noise;
+} // createNoise
+} // sonify
+
+function describe (f, x1, x2, dx) {
+let _precision = precision(dx);
+let xIntercepts = findXIntercepts(f, x1, x2, dx);
+let slopes = xIntercepts.map (x => findSlope(f, x, dx));
+message (`
+X intercepts: ${xIntercepts};
+slopes: ${slopes};
+`);
+} // describe
+
+
+/// helpers
+
+function getPoints (f, x1, x2, dx) {
+if (f instanceof Function) {
 return enumerate (x1,x2,dx)
 .map (x => {
-x = Number(x.toFixed(p));
-return [x, Number(f(x).toFixed(p))];
+return {x: toFixed(x, precision(dx)+1), y: toFixed(f(x), precision(dx)+1)};
 });
+
+} else if (typeof(f) === "object" && f instanceof Array) {
+return f;
+
+} else {
+alert ("getPoints: first argument must be a function or array of points");
+return [];
+} // if
 } // getPoints
 
 function enumerate (first, last, step) {
@@ -23,7 +116,7 @@ return result;
 function max (f, x1,x2, dx) {
 return getPoints (f, x1,x2, dx)
 .reduce ((m, p) => {
-if (isValidNumber(p[1]) && p[1] > m[1]) m = p;
+if (isValidNumber(p.y) && p.y > m.y) m = p;
 return m;
 });
 } // max
@@ -31,108 +124,11 @@ return m;
 function min (f, x1,x2, dx) {
 return getPoints (f, x1,x2, dx)
 .reduce ((m, p) => {
-if (isValidNumber(p[1]) && p[1] < m[1]) m = p;
+if (isValidNumber(p.y) && p.y < m.y) m = p;
 return m;
 });
 } // min
 
-
-function sonify (audio, f, x1, x2, dx = 0.1, sweepTime = 2.0, frequency = 500, frequencyRange = 200, volume = .07) {
-let maxFrequency = frequency + frequencyRange / 2;
-let minFrequency = frequency - frequencyRange / 2;
-
-let _max = max(f, x1,x2, dx)[1];
-let _min = min (f, x1, x2, dx)[1];
-if (Number.isNaN(_max) || Number.isNaN(_min)) {
-message ("cannot sonify this function");
-return;
-} // if
-
-let funcRange = (_max-_min);
-let scaleFactor = (funcRange !== 0)? frequencyRange / funcRange : 1;
-let panScaleFactor = 2 / Math.abs(x2-x1);
-let freqFunc = x => f(x) * scaleFactor + frequency;
-
-//debugging
-let fX1 = f(x1);
-let fX2 = f(x2);
-let f0 = f(0);
-
-let freqX1 = freqFunc(x1);
-let freqX2 = freqFunc(x2);
-//console.log ("sonify: ", {_max, _min, funcRange, frequencyRange, scaleFactor, fX1, freqX1, fX2, freqX2});
-
-
-return run (getPoints(f, x1, x2, dx));
-
-
-function run (points) {
-let dt = sweepTime * (dx / Math.abs(x2-x1));
-console.log ("dt: ", dt.toFixed(4));
-let gain = audio.createGain ();
-gain.gain.value = volume;
-let pan = audio.createStereoPanner();
-let started = false;
-let oscillator = audio.createOscillator();
-oscillator.connect (gain).connect(pan).connect (audio.destination);
-console.log (`sonifying ${points.length} points...`);
-//playNext ();
-
-let t = audio.currentTime;
-points.forEach (point => {
-let x = point[0];
-let y = point[1];
-
-if (isValidNumber(y)) {
-pan.pan.setValueAtTime (panScaleFactor * x, t);
-oscillator.frequency.setValueAtTime (y * scaleFactor + frequency, t);
-} // if
-
-t += dt;
-}); // forEach point
-
-oscillator.start ();
-oscillator.stop (t);
-return oscillator;
-} // run
-} // sonify
-
-function describe (f, x1, x2, dx, precision = 2) {
-let xIntercepts = findXIntercepts(f, x1, x2, dx, precision+1);
-let slopes = xIntercepts.map (x => findSlope(f, x, dx));
-message (`
-X intercepts: ${xIntercepts.map(x => round(x,precision))};
-slopes: ${slopes.map(x => round(x, precision))};
-`);
-} // describe
-
-/// helpers
-
-function findMin (f, x1, x2, dx) {
-x1 = findFirstValidResult (f, x1,x2, dx);
-if (x1 === undefined) return NaN;
-let min = f(x1);
-
-for (let x = x1; x <= x2; x += dx) {
-let y = f(x);
-if (isValidNumber(y) && y < min) min = y;
-} // for
-
-return min;
-} // findMin
-
-function findMax (f, x1, x2, dx) {
-x1 = findFirstValidResult (f, x1,x2, dx);
-if (x1 === undefined) return NaN;
-let max = f(x1);
-
-for (let x = x1; x <= x2; x += dx) {
-let y = f(x);
-if (isValidNumber(y) && y > max) max = y;
-} // for
-
-return max;
-} // findMax
 
 function findFirstValidResult (f, x1,x2, dx) {
 for (let x = x1; x <= x2; x += dx) {
@@ -143,40 +139,54 @@ return undefined;
 } // findFirstValidResult 
 
 
-function findXIntercepts (f, x1, x2, dx, refinement = 4) {
-let result = [];
+function findXIntercepts (f, x1, x2, dx) {
+let points = getPoints (f, x1,x2, dx);
 
-do {
-x1 = find (f, x1, x2, dx, refinement);
-if (x1 === undefined) break;
-result.push (x1);
-} while ((x1 += dx) <= x2);
-return result;
-
-function find (f, x1, x2, dx, refine = 3) {
-let xLast = x1;
-
-for (let x = x1+dx; x <= x2; x += dx) {
-if (Math.sign(f(xLast)) !== Math.sign(f(x))) {
-if (refine === 0) return (xLast + x) /2;
-else return find (f, xLast, x, dx/10, refine-1);
+// we need at least two points in order to find an intercept
+if (points.length < 2) {
+if (points.length === 1 && points[0].y === 0) return points;
+else return null;
 } // if
 
-xLast = x;
-} // for
-
-return undefined;
-} // find
+// first create a list of pairs of adjacent points
+return points.map ((p, i, a) => {
+let pNext = a[i+1];
+return pNext? [p, pNext] : null;
+})
+// next, find all such pairs where the sign of f(x) changes
+.filter (pair => {
+if (pair) {
+let p1 = pair[0], p2 = pair[1];
+return Math.sign (p1.y) !== Math.sign(p2.y);
+} // if
+})
+// and return value of x intercept found by linearly interpreting between these pairs of points
+.map (pair => [toFixed(x_intercept(pair[0], pair[1]), precision(dx)+1), 0]);
 } // findXIntercept
 
 
 function findSlope (f, x, dx) {
+if (! (f instanceof Function)) {
+alert ("findSlope only defined for functions, not lists of points");
+return undefined;
+} // if
 if (dx === 0) return undefined;
-let x1 = x - dx/2;
-let x2 = x + dx/2;
+
+let x1 = x - dx/10;
+let x2 = x + dx/10;
 let dY = f(x1) - f(x2);
-return dY / dx;
+return toFixed(dY / dx, precision(dx)+1);
 } // findSlope
+
+function precision (x) {
+return  Math.abs(Math.floor(Math.log10(x)));
+} // precision
+
+function toFixed (x, n) {
+return Number(
+Number(x).toFixed(n)
+); // Number
+} // toFixed
 
 function round (x, n, truncate) {
 let factor = Math.pow(10, n);
@@ -204,3 +214,6 @@ if (display) display.textContent = text;
 else alert (text);
 } // message
 
+function x_intercept (a, b) {
+return a.x - a.y*(b.x-a.x)/(b.y-a.y);
+} // x_intercept
