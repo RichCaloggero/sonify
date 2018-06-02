@@ -4,13 +4,25 @@
 
 Sonify a function over a given inclusive range, with a given precision (step size).
 
-Generally, the function is represented by a set of points, based on initial range and step size. They are rounded to a precision based on the step size. If step is .1 the precision is 1. Generally precision is:
+If scale factor is specified, use it, otherwise use the range of function divided by desired frequency range, or use 1 if function range is 0 (horizontal line).
+
+Before sonification, function over given range is converted to a set of points. Each point is an object with keys "x" and "y". 
+
+Values are rounded to one more decimal place than stepSize via Number.toFixed(), then converted back to Number.  If this is not done, rounding errors due to javascript numbers being represented as binary floating point will tend to cause unwanted results from functions which misbehave such as 1/x. 
 
 ```
-Math.abs(Math.floor(Math.log10(stepSize)))
+function precision (x) {
+return  Math.abs(Math.floor(Math.log10(x)));
+} // precision
+
+function toFixed (x, n) {
+return Number(
+Number(x).toFixed(n)
+); // Number
+} // toFixed
 ```
 
-If this is not done, rounding errors due to javascript numbers being represented as binary floating point will tend to cause unwanted results from functions which misbehave such as 1/x. For instance, the following test:
+For instance, the following test:
 
 ```
 for (let x=-1; x<=0; x+=.1) 
@@ -21,7 +33,7 @@ return Number(x.toFixed(3));
 } // p
 ```
 
-will produce -Infinity as expected when x reaches 0. However, if x were not massaged via the function p(x) as above, x would never reach 0, thus 1/x would become extremely large. This would create an issue with sonification because the scaling factor which depends on knowing the range of the function over the given interval would go toward zero.
+will produce -Infinity as expected when x reaches 0. However, if x were not massaged via the function p(x) as above, x would never reach 0, thus 1/x would become extremely large. This would create an issue with sonification because the scaling factor which depends on knowing the range of the function over the given interval would go toward zero.  However, if scale factor is user specified, then this may not be an issue, so may be able to revisit this at later time.
 
 ```
 scaleFactor = frequencyRange / funcRange

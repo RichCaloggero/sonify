@@ -91,7 +91,8 @@ function getPoints (f, x1, x2, dx) {
 if (f instanceof Function) {
 return enumerate (x1,x2,dx)
 .map (x => {
-return {x: toFixed(x, precision(dx)+1), y: toFixed(f(x), precision(dx)+1)};
+x = toFixed(x, precision(dx)+1);
+return {x: x, y: toFixed(f(x), precision(dx)+1)};
 });
 
 } else if (typeof(f) === "object" && f instanceof Array) {
