@@ -1,5 +1,6 @@
 window.sonify = (function () { // start
 let module = {};
+module.message = alert;
 
 
 module.sonify = sonify;
@@ -10,7 +11,7 @@ let minFrequency = frequency - frequencyRange / 2;
 let _max = max(f, x1,x2, dx);
 let _min = min (f, x1, x2, dx);
 if (Number.isNaN(_max.y) || Number.isNaN(_min.y)) {
-message ("cannot sonify this function");
+module.message ("cannot sonify this function");
 return;
 } // if
 
@@ -83,7 +84,7 @@ function describe (f, x1, x2, dx) {
 let _precision = precision(dx);
 let xIntercepts = findXIntercepts(f, x1, x2, dx);
 let slopes = xIntercepts.map (x => findSlope(f, x, dx));
-message (`
+module.message (`
 X intercepts: ${xIntercepts};
 slopes: ${slopes};
 `);
@@ -218,11 +219,6 @@ if (value === Infinity) throw new Error (`${label} is negative infinity`);
 return;
 } // validate
 
-function message (text) {
-let display = document.querySelector ("#message, .message");
-if (display) display.textContent = text;
-else alert (text);
-} // message
 
 function x_intercept (a, b) {
 return a.x - a.y*(b.x-a.x)/(b.y-a.y);

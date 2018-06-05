@@ -38,21 +38,14 @@ tan(x)
 let audio = new AudioContext();
 let $ = document.querySelector.bind(document);
 let oscillator;
-let _function;
+sonify.message = message;
 
 $("#points").addEventListener ("focus", (e) => {
 let x1 = Number($("#x1").value);
 let x2 = Number($("#x2").value);
 let dx = Number($("#dx").value);
-let f;
-
-try {
-f = compile($("#function").value);
-f(0);
-} catch (e) {
-message (`invalid function, ${e}`);
-return;
-} // catch
+let data = $("#function").value.trim();
+let f = getData (data, x1);
 
 let points = sonify.getPoints (f, x1,x2,dx);
 message (`${points.length} points retrieved`);
@@ -72,24 +65,16 @@ let sweepTime = Number($("#sweepTime").value);
 let frequencyRange = Number($("#frequencyRange").value);
 let centerFrequency = Number($("#centerFrequency").value);
 let scaleFactor = Number($("#scaleFactor").value);
-let f;
+let data = $("#function").value.trim();
+let f = getData (data, x1);
 
+// if sonification in progress, stop it and immediately return
 if (oscillator) {
 oscillator.stop();
 oscillator = null;
 return;
 } // if
 
-try {
-f = compile($("#function").value);
-f(0);
-} catch (e) {
-message (`invalid function, ${e}`);
-return;
-} // catch
-
-_function = f;
-//console.log ("run: ", e.target.textContent, {x1, x2, dx, f});
 
 switch (e.target.id) {
 case "describe": sonify.describe (f, x1, x2, dx);
@@ -102,6 +87,38 @@ break;
 
 }); // click #run
 
+function getData (f, x1) {
+// do we have raw data, or a function / expression to be evaluated
+if (f.toLowerCase().startsWith("data:")) {
+// expecting a set of points, either single values separated by spaces, or 2 element tuples also separated by spaces, whose elements are separated by commas
+f = f.slice(5).replace(/\n/g, " ").trim().split(" ")
+.map (s => s.trim())
+.map ((s, index) => createPoint(s, index, x1));
+
+} else {
+// expect a single argument function's body, whose formal parameter is named x
+try {
+f = compile($("#function").value);
+f(0);
+} catch (e) {
+message (`invalid function, ${e}`);
+return;
+} // catch
+} // if
+
+return f;
+} // getData
+
+function createPoint (s, index, x1) {
+let p;
+if (s.includes (",")) {
+p = s.split(",");
+return {x: Number(p[0]), y: Number(p[1])};
+
+} else {
+return {x: index+x1, y: Number(s)};
+} // if
+} // createPoint
 
 function compile (body, parameters = "x") {
 if (! body.includes("return")) body = `return (${body})`;
@@ -110,6 +127,11 @@ return new Function (parameters,
 `with (Math) {${body};}`);
 } // compile
 
+function message (text) {
+let display = document.querySelector ("#message, .message");
+if (display) display.textContent = text;
+else alert (text);
+} // message
 
 </script>
 </body>
