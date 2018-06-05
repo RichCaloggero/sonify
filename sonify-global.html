@@ -1,0 +1,116 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Sonification demo</title>
+</head>
+<body>
+<h1>Sonification Demo</h1>
+
+<div>
+<label>function: <textarea accesskey="f" id="function" rows="4">
+tan(x)
+</textarea></label>
+</div><div>
+<label>x1 = <input type="text" accesskey="1" id="x1" value="-10.0"></label>
+<label>x2 = <input type="text" accesskey="2" id="x2" value="10.0"></label>
+<label>dx = <input type="text" id="dx" value="0.2"></label>
+</div><div>
+<label>sweep time: <input accesskey="t" type="text" id="sweepTime" value="2.0"> seconds</label>
+<label>scale factor: <input accesskey="a" type="text" id="scaleFactor" value="1.0"></label>
+<label>center frequency: <input accesskey="c" type="text" id="centerFrequency" value="300"> hz</label>
+<label>frequency range: <input accesskey="r" type="text" id="frequencyRange" value="800"> hz</label>
+</div><div id="run">
+<button accesskey="d" id="describe">Describe</button>
+<button accesskey="s" id="sonify">Sonify</button>
+<label>points: <select id="points" accesskey="l" size="1"></select></label>
+</div>
+
+<div>
+<pre id="message" aria-live="polite"></pre>
+</div>
+
+</div>
+
+
+<script src="sonify-global.js"></script>
+<script>
+let audio = new AudioContext();
+let $ = document.querySelector.bind(document);
+let oscillator;
+let _function;
+
+$("#points").addEventListener ("focus", (e) => {
+let x1 = Number($("#x1").value);
+let x2 = Number($("#x2").value);
+let dx = Number($("#dx").value);
+let f;
+
+try {
+f = compile($("#function").value);
+f(0);
+} catch (e) {
+message (`invalid function, ${e}`);
+return;
+} // catch
+
+let points = sonify.getPoints (f, x1,x2,dx);
+message (`${points.length} points retrieved`);
+e.target.innerHTML = "";
+points.forEach (p => {
+let option = document.createElement ("option");
+option.textContent = Object.values(p);
+e.target.add(option);
+}); // for each point
+}); // focus
+
+$("#run").addEventListener ("click", (e) => {
+let x1 = Number($("#x1").value);
+let x2 = Number($("#x2").value);
+let dx = Number($("#dx").value);
+let sweepTime = Number($("#sweepTime").value);
+let frequencyRange = Number($("#frequencyRange").value);
+let centerFrequency = Number($("#centerFrequency").value);
+let scaleFactor = Number($("#scaleFactor").value);
+let f;
+
+if (oscillator) {
+oscillator.stop();
+oscillator = null;
+return;
+} // if
+
+try {
+f = compile($("#function").value);
+f(0);
+} catch (e) {
+message (`invalid function, ${e}`);
+return;
+} // catch
+
+_function = f;
+//console.log ("run: ", e.target.textContent, {x1, x2, dx, f});
+
+switch (e.target.id) {
+case "describe": sonify.describe (f, x1, x2, dx);
+break;
+
+case "sonify": oscillator = sonify.sonify (audio, f, x1, x2, dx, sweepTime, centerFrequency, frequencyRange, scaleFactor);
+oscillator.onended = () => oscillator = null;
+break;
+} // switch
+
+}); // click #run
+
+
+function compile (body, parameters = "x") {
+if (! body.includes("return")) body = `return (${body})`;
+
+return new Function (parameters,
+`with (Math) {${body};}`);
+} // compile
+
+
+</script>
+</body>
+</html>
