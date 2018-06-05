@@ -1,11 +1,23 @@
 # Sonify
 
+Sonify a function over a given inclusive range, with a given precision (step size), or sonify arbitrary data.
+
+## Demo
+
+https://RichCaloggero.github.io/sonify/sonify.html
+
+To specify data, use either of the following formats:
+
+1. data: a b c d e (the string "data:" followed by a space separated list of numbers)
+2. data: a,b c,d e,f ... (the string "data:" followed by a space separated list of 2d points, whose members are separated via comma)
+
+In case 1 above, the values are converted to points with x values based on the index of the point in the set. The value of the user specified x1 value is added to the index. Thus, be sure that the value of x1 is set to 0 if you want x values to begin with 0. By default, x1 is -10.0
+
+Case 2 above let's you specify both x and y values for each point as a space separated list of coordinates whose x and y values are separated by commas.
+
+The scale factor defaults to 13 which is usable, however depending upon what you are sonifying, this may need to be adjusted to allow you discern the shape of the data. Use 0 to scale to the entire desired frequency range.
+
 ## Developer Notes
-
-Sonify a function over a given inclusive range, with a given precision (step size).
-
-If scale factor is specified, use it, otherwise use the range of function divided by desired frequency range, or use 1 if function range is 0 (horizontal line).
-
 Before sonification, function over given range is converted to a set of points. Each point is an object with keys "x" and "y". 
 
 Values are rounded to one more decimal place than stepSize via Number.toFixed(), then converted back to Number.  If this is not done, rounding errors due to javascript numbers being represented as binary floating point will tend to cause unwanted results from functions which misbehave such as 1/x. 

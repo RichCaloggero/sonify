@@ -4,7 +4,7 @@ module.message = alert;
 
 
 module.sonify = sonify;
-function sonify (audio, f, x1, x2, dx = 0.1, sweepTime = 2.0, frequency = 500, frequencyRange = 200, scaleFactor = 1, volume = .07) {
+function sonify (audio, f, x1, x2, dx = 0.1, sweepTime = 2.0, frequency = 500, frequencyRange = 200, scaleFactor = 13, volume = .07) {
 let maxFrequency = frequency + frequencyRange / 2;
 let minFrequency = frequency - frequencyRange / 2;
 
@@ -17,7 +17,7 @@ return;
 
 let funcRange = (_max.y - _min.y);
 scaleFactor = (funcRange === 0)? 1
- : (scaleFactor === 1)? frequencyRange / funcRange
+ : (scaleFactor === 0)? frequencyRange / funcRange
 : scaleFactor;
 let panScaleFactor = 2 / Math.abs(x2-x1);
 //console.log ("debug: ", {_max, _min, funcRange, frequencyRange, scaleFactor});
