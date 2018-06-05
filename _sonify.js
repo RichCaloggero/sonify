@@ -1,5 +1,5 @@
 
-function sonify (audio, f, x1, x2, dx = 0.1, sweepTime = 2.0, frequency = 500, frequencyRange = 200, volume = .07) {
+function sonify (audio, f, x1, x2, dx = 0.1, sweepTime = 2.0, frequency = 500, frequencyRange = 200, scaleFactor = 1, volume = .07) {
 let maxFrequency = frequency + frequencyRange / 2;
 let minFrequency = frequency - frequencyRange / 2;
 
@@ -11,7 +11,9 @@ return;
 } // if
 
 let funcRange = (_max.y - _min.y);
-let scaleFactor = (funcRange !== 0)? frequencyRange / funcRange : 1;
+scaleFactor = (funcRange === 0)? 1
+ : (scaleFactor === 1)? frequencyRange / funcRange
+: scaleFactor;
 let panScaleFactor = 2 / Math.abs(x2-x1);
 //console.log ("debug: ", {_max, _min, funcRange, frequencyRange, scaleFactor});
 
@@ -89,7 +91,8 @@ function getPoints (f, x1, x2, dx) {
 if (f instanceof Function) {
 return enumerate (x1,x2,dx)
 .map (x => {
-return {x: toFixed(x, precision(dx)+1), y: toFixed(f(x), precision(dx)+1)};
+x = toFixed(x, precision(dx)+1);
+return {x: x, y: toFixed(f(x), precision(dx)+1)};
 });
 
 } else if (typeof(f) === "object" && f instanceof Array) {

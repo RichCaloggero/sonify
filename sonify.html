@@ -17,7 +17,7 @@ tan(x)
 <label>dx = <input type="text" id="dx" value="0.2"></label>
 </div><div>
 <label>sweep time: <input accesskey="t" type="text" id="sweepTime" value="2.0"> seconds</label>
-<label>scale factor: <input accesskey="a" type="text" id="scaleFactor" value="1.0"></label>
+<label>scale factor (1.0 for full scale): <input accesskey="a" type="text" id="scaleFactor" value="13.0"></label>
 <label>center frequency: <input accesskey="c" type="text" id="centerFrequency" value="300"> hz</label>
 <label>frequency range: <input accesskey="r" type="text" id="frequencyRange" value="800"> hz</label>
 </div><div id="run">
@@ -54,7 +54,7 @@ message (`invalid function, ${e}`);
 return;
 } // catch
 
-let points = getPoints (f, x1,x2,dx);
+let points = sonify.getPoints (f, x1,x2,dx);
 message (`${points.length} points retrieved`);
 e.target.innerHTML = "";
 points.forEach (p => {
@@ -92,10 +92,10 @@ _function = f;
 //console.log ("run: ", e.target.textContent, {x1, x2, dx, f});
 
 switch (e.target.id) {
-case "describe": describe (f, x1, x2, dx);
+case "describe": sonify.describe (f, x1, x2, dx);
 break;
 
-case "sonify": oscillator = sonify (audio, f, x1, x2, dx, sweepTime, centerFrequency, frequencyRange, scaleFactor);
+case "sonify": oscillator = sonify.sonify (audio, f, x1, x2, dx, sweepTime, centerFrequency, frequencyRange, scaleFactor);
 oscillator.onended = () => oscillator = null;
 break;
 } // switch

@@ -1,4 +1,8 @@
+window.sonify = (function () { // start
+let module = {};
 
+
+module.sonify = sonify;
 function sonify (audio, f, x1, x2, dx = 0.1, sweepTime = 2.0, frequency = 500, frequencyRange = 200, scaleFactor = 1, volume = .07) {
 let maxFrequency = frequency + frequencyRange / 2;
 let minFrequency = frequency - frequencyRange / 2;
@@ -74,6 +78,7 @@ return noise;
 } // createNoise
 } // sonify
 
+module.describe = describe;
 function describe (f, x1, x2, dx) {
 let _precision = precision(dx);
 let xIntercepts = findXIntercepts(f, x1, x2, dx);
@@ -87,6 +92,7 @@ slopes: ${slopes};
 
 /// helpers
 
+module.getPoints = getPoints;
 function getPoints (f, x1, x2, dx) {
 if (f instanceof Function) {
 return enumerate (x1,x2,dx)
@@ -104,6 +110,7 @@ return [];
 } // if
 } // getPoints
 
+module.enumerate = enumerate;
 function enumerate (first, last, step) {
 if (first > last) {
 let t = first;
@@ -220,3 +227,6 @@ else alert (text);
 function x_intercept (a, b) {
 return a.x - a.y*(b.x-a.x)/(b.y-a.y);
 } // x_intercept
+
+return module;
+})();  // end

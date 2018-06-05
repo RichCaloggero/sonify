@@ -33,7 +33,7 @@ tan(x)
 </div>
 
 
-<script src="sonify-global.js"></script>
+<script src="sonify.js"></script>
 <script>
 let audio = new AudioContext();
 let $ = document.querySelector.bind(document);
@@ -54,7 +54,7 @@ message (`invalid function, ${e}`);
 return;
 } // catch
 
-let points = sonify.getPoints (f, x1,x2,dx);
+let points = getPoints (f, x1,x2,dx);
 message (`${points.length} points retrieved`);
 e.target.innerHTML = "";
 points.forEach (p => {
@@ -92,10 +92,10 @@ _function = f;
 //console.log ("run: ", e.target.textContent, {x1, x2, dx, f});
 
 switch (e.target.id) {
-case "describe": sonify.describe (f, x1, x2, dx);
+case "describe": describe (f, x1, x2, dx);
 break;
 
-case "sonify": oscillator = sonify.sonify (audio, f, x1, x2, dx, sweepTime, centerFrequency, frequencyRange, scaleFactor);
+case "sonify": oscillator = sonify (audio, f, x1, x2, dx, sweepTime, centerFrequency, frequencyRange, scaleFactor);
 oscillator.onended = () => oscillator = null;
 break;
 } // switch
