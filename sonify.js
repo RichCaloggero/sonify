@@ -1,6 +1,6 @@
 window.sonify = (function () { // start
 let defaults = {
-message: alert
+message: alert.bind(window)
 }; // defaults
 let options = Object.assign ({}, defaults);
 let module = {};
