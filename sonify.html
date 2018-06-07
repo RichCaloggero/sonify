@@ -38,7 +38,8 @@ tan(x)
 let audio = new AudioContext();
 let $ = document.querySelector.bind(document);
 let oscillator;
-sonify.message = message;
+sonify.option ({message: message});
+console.log ("message is ", sonify.option("message"));
 
 $("#points").addEventListener ("focus", (e) => {
 let x1 = Number($("#x1").value);

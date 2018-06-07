@@ -1,7 +1,23 @@
 window.sonify = (function () { // start
+let defaults = {
+message: alert
+}; // defaults
+let options = Object.assign ({}, defaults);
 let module = {};
-module.message = alert;
 
+module.option = option;
+function option (request) {
+if (! request) return options;
+
+if (request instanceof String || typeof(request) === "string") {
+if (arguments.length === 1) return options[request];
+else return (options[request] = value);
+} else if (typeof(request) === "object") {
+return Object.assign ({}, options, request);
+} // if
+
+return null;
+} // option
 
 module.sonify = sonify;
 function sonify (audio, f, x1, x2, dx = 0.1, sweepTime = 2.0, frequency = 500, frequencyRange = 200, scaleFactor = 13, volume = .07) {
@@ -11,7 +27,7 @@ let minFrequency = frequency - frequencyRange / 2;
 let _max = max(f, x1,x2, dx);
 let _min = min (f, x1, x2, dx);
 if (Number.isNaN(_max.y) || Number.isNaN(_min.y)) {
-module.message ("cannot sonify this function");
+options.message ("cannot sonify this function");
 return;
 } // if
 
@@ -84,7 +100,7 @@ function describe (f, x1, x2, dx) {
 let _precision = precision(dx);
 let xIntercepts = findXIntercepts(f, x1, x2, dx);
 let slopes = xIntercepts.map (x => findSlope(f, x, dx));
-module.message (`
+options.message (`
 X intercepts: ${xIntercepts};
 slopes: ${slopes};
 `);
