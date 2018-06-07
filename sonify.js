@@ -7,16 +7,8 @@ let module = {};
 
 module.option = option;
 function option (request) {
-if (! request) return options;
-
-if (request instanceof String || typeof(request) === "string") {
-if (arguments.length === 1) return options[request];
-else return (options[request] = value);
-} else if (typeof(request) === "object") {
-return Object.assign ({}, options, request);
-} // if
-
-return null;
+if (! request || typeof(request) !== "object") return options;
+return Object.assign (options, defaults, request);
 } // option
 
 module.sonify = sonify;
